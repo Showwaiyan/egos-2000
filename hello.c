@@ -23,10 +23,17 @@ void format_to_str(char *out, const char *fmt, va_list args) {
         itoa(va_arg(args, int), out + strlen(out), 10);
       } else if (*fmt == 'c') {
         size_t len = strlen(out);
-        out[len] = (char)va_arg(args,int); // should be char for va_arg, but it will convert to int
-        // type smaller than int, such as char, bool and short will conver to int as for performance
-        // because of word boundary for mechine (cpu don't fetch data just on byte, mostly 4 byte for 32 bit mechine)
-        out[len+1] = '\0';
+        out[len] = (char)va_arg(
+            args, int); // should be char for va_arg, but it will convert to int
+        // type smaller than int, such as char, bool and short will conver to
+        // int as for performance because of word boundary for mechine (cpu
+        // don't fetch data just on byte, mostly 4 byte for 32 bit mechine)
+        out[len + 1] = '\0';
+      } else if (*fmt == 'x') {
+        itoa(va_arg(args, int), out + strlen(out), 16);
+      }
+      else if (*fmt == 'u') {
+        utoa(va_arg(args, int), out + strlen(out), 10);
       }
     }
   }
@@ -71,9 +78,9 @@ int main() {
   printf("%s-%d is awesome!\n\r", "egos", 2000);
 
   printf("%c is character $\n\r", '$');
-  // printf("%c is character 0", (char)48);
-  // printf("%x is integer 1234 in hexadecimal", 1234);
-  // printf("%u is the maximum of unsigned int", (unsigned int)0xFFFFFFFF);
+  printf("%c is character 0\n\r", (char)48);
+  printf("%x is integer 1234 in hexadecimal\n\r", 1234);
+  printf("%u is the maximum of unsigned int\n\r", (unsigned int)0xFFFFFFFF);
   // printf("%p is the hexadecimal address of the hello-world string", msg);
   // printf("%llu is the maximum of unsigned long long", 0xFFFFFFFFFFFFFFFFULL);
   return 0;
