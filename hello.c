@@ -11,6 +11,38 @@ void terminal_write(const char *str, int len) {
 #include <stdlib.h> // for itoa() and utoa()
 #include <string.h> // for strlen() and strcat()
 
+void reverse(char *str, int len) {
+  int left_side = 0;
+  int right_side = len - 1;
+  while (left_side < right_side) {
+    char temp = str[left_side];
+    str[left_side] = str[right_side];
+    str[right_side] = temp;
+    left_side++;
+    right_side--;
+  }
+}
+
+char *llutoa(unsigned long long int num, char *str) {
+  int i = 0;
+  if (num == 0) {
+    str[i] = '0';
+    str[++i] = '\0';
+    return str;
+  }
+
+  while (num != 0) {
+    int rem = num % 10;
+    str[i++] = rem + '0';
+    num = num / 10;
+  }
+
+  str[i] = '\0';
+
+  reverse(str, i);
+  return str;
+}
+
 void format_to_str(char *out, const char *fmt, va_list args) {
   for (out[0] = 0; *fmt != '\0'; fmt++) {
     if (*fmt != '%') {
@@ -31,9 +63,19 @@ void format_to_str(char *out, const char *fmt, va_list args) {
         out[len + 1] = '\0';
       } else if (*fmt == 'x') {
         itoa(va_arg(args, int), out + strlen(out), 16);
-      }
-      else if (*fmt == 'u') {
+      } else if (*fmt == 'u') {
         utoa(va_arg(args, int), out + strlen(out), 10);
+      } else if (*fmt == 'p') {
+        strcat(out, "0x");
+        utoa(va_arg(args, int), out + strlen(out), 16);
+      } else if (*fmt == 'l' || *fmt == 'L') {
+        fmt++;
+        if (*fmt == 'l' || *fmt == 'L') {
+          fmt++;
+          if (*fmt == 'u') {
+            llutoa(va_arg(args, unsigned long long int), out + strlen(out));
+          }
+        }
       }
     }
   }
@@ -81,7 +123,7 @@ int main() {
   printf("%c is character 0\n\r", (char)48);
   printf("%x is integer 1234 in hexadecimal\n\r", 1234);
   printf("%u is the maximum of unsigned int\n\r", (unsigned int)0xFFFFFFFF);
-  // printf("%p is the hexadecimal address of the hello-world string", msg);
-  // printf("%llu is the maximum of unsigned long long", 0xFFFFFFFFFFFFFFFFULL);
+  printf("%p is the hexadecimal address of the hello-world string\n\r", msg);
+  printf("%llu is the maximum of unsigned long long\n", 0xFFFFFFFFFFFFFFFFULL);
   return 0;
 }
