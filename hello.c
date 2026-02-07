@@ -83,7 +83,7 @@ void format_to_str(char *out, const char *fmt, va_list args) {
 }
 
 unsigned int len_itoa(int value, int base) {
-  unsigned int len;
+  unsigned int len = 0;
   if (value == 0)
     return 1; // zero is one digit
   int num = value;
@@ -99,7 +99,7 @@ unsigned int len_itoa(int value, int base) {
 }
 
 unsigned int len_utoa(unsigned int value, int base) {
-  unsigned int len;
+  unsigned int len = 0;
   if (value == 0)
     return 1; // zero is one digit
   unsigned int num = value;
@@ -111,7 +111,7 @@ unsigned int len_utoa(unsigned int value, int base) {
 }
 
 unsigned int len_llutoa(unsigned long long value, int base) {
-  unsigned int len;
+  unsigned int len = 0;
   if (value == 0)
     return 1; // zero is one digit
   unsigned long long num = value;
@@ -122,8 +122,8 @@ unsigned int len_llutoa(unsigned long long value, int base) {
   return len;
 }
 
-unsigned int format_to_str_len(char *fmt, va_list args) {
-  unsigned int len = 0;
+unsigned int format_to_str_len(const char *fmt, va_list args) {
+  unsigned int len = 1; // +1 for \0
   for (; *fmt != '\0'; fmt++) {
     if (*fmt != '%') {
       len++;
@@ -153,18 +153,21 @@ unsigned int format_to_str_len(char *fmt, va_list args) {
       }
     }
   }
-  return len + 1; // +1 for null terminator
+  return len;
 }
 
 int printf(const char *format, ...) {
-  char buf[512];
   va_list args;
   va_start(args, format);
   va_list args_copy;
   va_copy(args_copy, args);
+  unsigned int len = format_to_str_len(format, args_copy);
+  char *buf = malloc(len);
   format_to_str(buf, format, args);
   va_end(args);
+  va_end(args_copy);
   terminal_write(buf, strlen(buf));
+  free(buf);
 
   return 0;
 }
@@ -208,10 +211,10 @@ int main() {
   printf("%p is the hexadecimal address of the hello-world string\n\r", msg);
   printf("%llu is the maximum of unsigned long long\n", 0xFFFFFFFFFFFFFFFFULL);
 
+  // Testing
   // test_formate_to_str_len("Hello%c",'!');
   // test_formate_to_str_len("Hello%s","!World");
   // test_formate_to_str_len("%d", 123);
-  // test_formate_to_str_len("%x", 1234);
   // test_formate_to_str_len("%u", (unsigned int)0xFFFFFFFF);
   // test_formate_to_str_len("%p", msg);
   // test_formate_to_str_len("%llu", 0xFFFFFFFFFFFFFFFFULL);
