@@ -1,3 +1,4 @@
+#include <stdio.h>
 void terminal_write(const char *str, int len) {
   for (int i = 0; i < len; i++) {
     *(char *)(0x10000000) = str[i];
@@ -60,7 +61,7 @@ void format_to_str(char *out, const char *fmt, va_list args) {
         // type smaller than int, such as char, bool and short will conver to
         // int as for performance because of word boundary for mechine (cpu
         // don't fetch data just on byte, mostly 4 byte for 32 bit mechine)
-        out[len + 1] = '\0'; 
+        out[len + 1] = '\0';
       } else if (*fmt == 'x') {
         itoa(va_arg(args, int), out + strlen(out), 16);
       } else if (*fmt == 'u') {
@@ -81,6 +82,25 @@ void format_to_str(char *out, const char *fmt, va_list args) {
   }
 }
 
+unsigned int len_itoa(int value, int base) {
+  unsigned int len;
+  if (value == 0)
+    return 1; // zero is one digit
+  int num = value;
+  if (value < 0) {
+    len++; // '-' sign is one length
+    unsigned int num = (unsigned int)(-(int)value);
+  };
+  // why we cannot use '-' to int
+  // will work most of the number
+  // but for min number for int will be overflow
+  while (num != 0) {
+    len++;
+    num /= base;
+  }
+  return len;
+}
+
 unsigned int format_to_str_len(char *fmt, va_list args) {
   unsigned int len = 0;
   for (; *fmt != '\0'; fmt++) {
@@ -90,13 +110,16 @@ unsigned int format_to_str_len(char *fmt, va_list args) {
       fmt++;
       if (*fmt == 'c') {
         len++;
-      }
-      if (*fmt == 's') {
-        len += strlen(va_arg(args,char*));
+      } else if (*fmt == 's') {
+        len += strlen(va_arg(args, char *));
+      } else if (*fmt == 'd') {
+        len += len_itoa(va_arg(args, int), 10);
+      } else if (*fmt == 'x') {
+        len += len_itoa(va_arg(args,int), 16);
       }
     }
   }
-  return len+1; // +1 for null terminator
+  return len + 1; // +1 for null terminator
 }
 
 int printf(const char *format, ...) {
@@ -104,7 +127,7 @@ int printf(const char *format, ...) {
   va_list args;
   va_start(args, format);
   va_list args_copy;
-  va_copy(args_copy,args);
+  va_copy(args_copy, args);
   format_to_str(buf, format, args);
   va_end(args);
   terminal_write(buf, strlen(buf));
@@ -128,7 +151,7 @@ char *_sbrk(int size) {
   return old_brk;
 }
 
-void test_formate_to_str_len(char *fmt,...) {
+void test_formate_to_str_len(char *fmt, ...) {
   va_list args;
   va_start(args, fmt);
   unsigned int test = format_to_str_len(fmt, args);
@@ -153,6 +176,8 @@ int main() {
 
   // test_formate_to_str_len("Hello%c",'!');
   // test_formate_to_str_len("Hello%s","!World");
+  // test_formate_to_str_len("%d", 123);
+  test_formate_to_str_len("%x", 1234);
 
   return 0;
 }
