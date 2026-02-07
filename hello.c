@@ -89,11 +89,32 @@ unsigned int len_itoa(int value, int base) {
   int num = value;
   if (value < 0) {
     len++; // '-' sign is one length
-    unsigned int num = (unsigned int)(-(int)value);
+    num = (unsigned int)(-(int)value);
   };
-  // why we cannot use '-' to int
-  // will work most of the number
-  // but for min number for int will be overflow
+  while (num != 0) {
+    len++;
+    num /= base;
+  }
+  return len;
+}
+
+unsigned int len_utoa(unsigned int value, int base) {
+  unsigned int len;
+  if (value == 0)
+    return 1; // zero is one digit
+  unsigned int num = value;
+  while (num != 0) {
+    len++;
+    num /= base;
+  }
+  return len;
+}
+
+unsigned int len_llutoa(unsigned long long value, int base) {
+  unsigned int len;
+  if (value == 0)
+    return 1; // zero is one digit
+  unsigned long long num = value;
   while (num != 0) {
     len++;
     num /= base;
@@ -115,7 +136,20 @@ unsigned int format_to_str_len(char *fmt, va_list args) {
       } else if (*fmt == 'd') {
         len += len_itoa(va_arg(args, int), 10);
       } else if (*fmt == 'x') {
-        len += len_itoa(va_arg(args,int), 16);
+        len += len_itoa(va_arg(args, int), 16);
+      } else if (*fmt == 'u') {
+        len += len_utoa(va_arg(args, unsigned int), 10);
+      } else if (*fmt == 'p') {
+        len += 2; // for "0x"
+        len += len_utoa(va_arg(args, unsigned int), 16);
+      } else if (*fmt == 'l' || *fmt == 'L') {
+        fmt++;
+        if (*fmt == 'l' || *fmt == 'L') {
+          fmt++;
+          if (*fmt == 'u') {
+            len += len_llutoa(va_arg(args, unsigned long long), 10);
+          }
+        }
       }
     }
   }
@@ -177,7 +211,10 @@ int main() {
   // test_formate_to_str_len("Hello%c",'!');
   // test_formate_to_str_len("Hello%s","!World");
   // test_formate_to_str_len("%d", 123);
-  test_formate_to_str_len("%x", 1234);
+  // test_formate_to_str_len("%x", 1234);
+  // test_formate_to_str_len("%u", (unsigned int)0xFFFFFFFF);
+  // test_formate_to_str_len("%p", msg);
+  // test_formate_to_str_len("%llu", 0xFFFFFFFFFFFFFFFFULL);
 
   return 0;
 }
