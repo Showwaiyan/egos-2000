@@ -7,8 +7,10 @@ enum thread_status {
 
 struct thread {
     int id;
-    void* sp;
     enum thread_status status;
+    void* sp;
+    void (*entry)(void *arg);
+    void *arg;
     /* Define the data structure for thread control block. */
 
 };
