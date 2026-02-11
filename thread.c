@@ -11,8 +11,9 @@
 
 /* Student's code goes here (Cooperative Threads). */
 /* Define the TCB and helper functions (if needed) for multi-threading. */
+#define MAX_THREADS 32
 int current;
-struct thread TCB[32];
+struct thread TCB[MAX_THREADS];
 
 /* Student's code ends here. */
 
