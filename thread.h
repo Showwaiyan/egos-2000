@@ -1,8 +1,10 @@
 /* Student's code goes here (Cooperative Threads). */
 enum thread_status {
-	THREAD_RUNNING,
+  UNUSED,
+  RUNNABLE,
+	RUNNING,
+  TERMINATED
     /* Define the various possible status of a thread. */
-
 };
 
 struct thread {
