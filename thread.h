@@ -12,7 +12,7 @@ struct thread {
     enum thread_status status;
     void* sp;
     void (*entry)(void *arg);
-    void *arg;
+    void *args;
     /* Define the data structure for thread control block. */
 
 };
