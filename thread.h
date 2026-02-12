@@ -10,9 +10,10 @@ enum thread_status {
 struct thread {
     int id;
     enum thread_status status;
+    void* stack_base; //lowest memory of stack to be freed
     void* sp;
     void (*entry)(void *arg);
-    void *args;
+    void *arg;
     /* Define the data structure for thread control block. */
 
 };
@@ -27,6 +28,7 @@ struct cv {
    When creating 1000 threads, 1000*1KB ≈ 1MB memory will be
    allocated from the **heap** as the stack of these threads. */
 #define STACK_SIZE 1024
+#define MAX_THREADS 32
 
 /* ctx_start() and ctx_switch() are defined in context.s */
 void  ctx_start(void **sp_old, void *sp_new);
