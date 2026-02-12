@@ -86,12 +86,6 @@ void thread_create(void (*entry)(void *arg), void *arg) {
   // Call ctx_start
   ctx_start(&(TCB[previous_idx].sp), t->sp);
 
-  // Testing
-  // printf("Status: %d\n\r",t->status);
-  // printf("Size same?: %d\n\r", t->sp == (child_stack+STACK_SIZE));
-
-  // free(t);
-
   /* Student's code ends here. */
 }
 
@@ -103,15 +97,13 @@ void thread_yield() {
 
 void thread_exit() {
   /* Student's code goes here (Cooperative Threads). */
-  struct thread *t = &TCB[current_idx];
+  struct thread *t = &TCB[current_idx]; // old thread
   t->status = TERMINATED;
-  // if (t->stack_base != NULL)
-  //   free(t->stack_base);
   t->entry = NULL;
   t->arg = NULL;
 
   int i;
-  struct thread *tn = NULL;
+  struct thread *tn = NULL; // new thread
   for (i = 0; i < MAX_THREADS; i++) {
     if (TCB[i].status == RUNNABLE) {
       tn = &TCB[i];
@@ -124,12 +116,12 @@ void thread_exit() {
   previous_idx = current_idx;
   current_idx = i;
 
-  ctx_switch(&TCB[previous_idx].sp, tn->sp);
+  ctx_switch(&t->sp, tn->sp);
 
-  if (TCB[previous_idx].status == TERMINATED &&
-      TCB[previous_idx].stack_base != NULL) {
-    free(TCB[previous_idx].stack_base);
-    TCB[previous_idx].stack_base = NULL;
+  if (t->status == TERMINATED &&
+      t->stack_base != NULL) {
+    free(t->stack_base);
+    t->stack_base = NULL;
   }
 
   /* Student's code ends here. */
