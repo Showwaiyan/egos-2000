@@ -112,17 +112,19 @@ void thread_exit() {
   }
 
   if (tn == NULL) _end();
+  tn->status = RUNNING;
 
   previous_idx = current_idx;
   current_idx = i;
 
   ctx_switch(&t->sp, tn->sp);
 
-  if (t->status == TERMINATED &&
-      t->stack_base != NULL) {
-    free(t->stack_base);
-    t->stack_base = NULL;
-  }
+  // Need to clean previous stack
+  // if (t->status == TERMINATED &&
+  //     t->stack_base != NULL) {
+  //   free(t->stack_base);
+  //   t->stack_base = NULL;
+  // }
 
   /* Student's code ends here. */
 }
