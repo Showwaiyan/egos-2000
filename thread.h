@@ -1,3 +1,4 @@
+#include <sys/queue.h>
 /* Student's code goes here (Cooperative Threads). */
 enum thread_status {
   UNUSED,
@@ -15,7 +16,7 @@ struct thread {
     void (*entry)(void *arg);
     void *arg;
     /* Define the data structure for thread control block. */
-
+    SLIST_ENTRY(thread) next;
 };
 
 struct cv {

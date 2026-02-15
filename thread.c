@@ -12,28 +12,36 @@
 
 /* Student's code goes here (Cooperative Threads). */
 /* Define the TCB and helper functions (if needed) for multi-threading. */
+
+struct thread *current_thread;
 int current_idx;
-int previous_idx;
-struct thread TCB[MAX_THREADS] = {0};
+// int previous_idx;
+// struct thread TCB[MAX_THREADS] = {0};
+SLIST_HEAD(TCB, thread) TCB;
 
 /* Student's code ends here. */
 
 void thread_init() {
   /* Student's code goes here (Cooperative Threads). */
 
-  // Initialize all thread as UNUSED
-  for (int i = 0; i < MAX_THREADS; i++) {
-    TCB[i].status = UNUSED;
-  }
+  // Initialize the thread with head
+  SLIST_INIT(&TCB);
 
-  // Initialize assign current as 0 and main thread as index 0
+  // Initialize the main thread
+  struct thread *main = malloc(sizeof(struct thread));
+
+  // Assigne value to main thread
+  main->id = 0;
+  main->status = RUNNING;
+  main->stack_base = NULL;
+  main->sp = NULL;
+  main->entry = NULL;
+  main->arg = NULL;
+
   current_idx = 0;
-  TCB[current_idx].id = 0;
-  TCB[current_idx].status = RUNNING;
-  TCB[current_idx].stack_base = NULL;
-  TCB[current_idx].sp = NULL;
-  TCB[current_idx].entry = NULL;
-  TCB[current_idx].arg = NULL;
+  current_thread = main;
+
+  SLIST_INSERT_HEAD(&TCB, main, next);
 
   /* Student's code ends here. */
 }
@@ -41,7 +49,7 @@ void thread_init() {
 void ctx_entry() {
   /* Student's code goes here (Cooperative Threads). */
 
-  struct thread *t = &TCB[current_idx];
+  struct thread *t = current_thread;
   // Call entery function with entery args
   t->entry(t->arg);
 
@@ -54,87 +62,85 @@ void ctx_entry() {
 void thread_create(void (*entry)(void *arg), void *arg) {
   /* Student's code goes here (Cooperative Threads). */
 
-  // Find unused tcb element to assign a new thread
-  struct thread *t_old = &TCB[current_idx];
-  struct thread *t_new = NULL;
+  struct thread *new_thread = malloc(sizeof(struct thread));
 
-  int i;
-  for (i = 0; i < MAX_THREADS; i++) {
-    if (TCB[i].status == UNUSED) {
-      t_new = &TCB[i];
-      break;
-    }
-  }
+  current_thread->status = RUNNABLE;
 
-  t_old->status = RUNNABLE;
+  new_thread->id = ++current_idx;
+  new_thread->status = RUNNING;
+  new_thread->entry = entry;
+  new_thread->arg = arg;
 
-  t_new->id = i;
-  current_idx = t_new->id;
-  t_new->status = RUNNING;
-  t_new->entry = entry;
-  t_new->arg = arg;
+  struct thread *old_thread = current_thread;
+  current_thread = new_thread;
+
+
 
   // Allocate Stack size
   char *child_stack = malloc(STACK_SIZE);
   // Why we use char*, because we need to process in raw bytes, so 1 byte size
   // char is the best
 
-  t_new->stack_base = child_stack;
-  t_new->sp = child_stack +
+  new_thread->stack_base = child_stack;
+  new_thread->sp = child_stack +
           STACK_SIZE; // We add STACK_SIZE as mallco only give the lowest memory
   // Stack need to point to highest memory of its
 
+  SLIST_INSERT_HEAD(&TCB, new_thread, next);
+
   // Call ctx_start
-  ctx_start(&t_old->sp, t_new->sp);
+  ctx_start(&old_thread->sp, new_thread->sp);
 
   /* Student's code ends here. */
 }
 
 void thread_yield() {
   /* Student's code goes here (Cooperative Threads). */
-  struct thread *t_old = &TCB[current_idx];
-  struct thread *t_new = NULL;
+  struct thread *old_thread = current_thread;
+  struct thread *new_thread = NULL;
 
-  int i;
-  for (i = 0;i< MAX_THREADS; i++) {
-    if (TCB[i].status == RUNNABLE) {
-      t_new = &TCB[i];
+
+  struct thread *t;
+  SLIST_FOREACH(t, &TCB, next) {
+    if (t->status == RUNNABLE) {
+      new_thread = t;
       break;
     }
   }
   
-  t_old->status = RUNNABLE;
-  t_new->status = RUNNING;
+  old_thread->status = RUNNABLE;
+  new_thread->status = RUNNING;
 
-  current_idx = i;
+  current_thread = new_thread;
 
-  ctx_switch(&t_old->sp, t_new->sp);
+  ctx_switch(&old_thread->sp, new_thread->sp);
 
   /* Student's code ends here. */
 }
 
 void thread_exit() {
   /* Student's code goes here (Cooperative Threads). */
-  struct thread *t_old = &TCB[current_idx]; // old thread
-  t_old->status = TERMINATED;
-  t_old->entry = NULL;
-  t_old->arg = NULL;
+  struct thread *old_thread = current_thread;
+  
+  old_thread->status = TERMINATED;
+  old_thread->entry = NULL;
+  old_thread->arg = NULL;
 
-  int i;
-  struct thread *t_new = NULL; // new thread
-  for (i = 0; i < MAX_THREADS; i++) {
-    if (TCB[i].status == RUNNABLE) {
-      t_new = &TCB[i];
+
+  struct thread *new_thread;
+  struct thread *t;
+  SLIST_FOREACH(t, &TCB, next) {
+    if (t->status == RUNNABLE) {
+      new_thread = t;
       break;
     }
   }
 
-  if (t_new == NULL) _end();
-  t_new->status = RUNNING;
+  if (new_thread == NULL) _end();
+  new_thread->status = RUNNING;
+  current_thread = new_thread;
 
-  current_idx = i;
-
-  ctx_switch(&t_old->sp, t_new->sp);
+  ctx_switch(&old_thread->sp, new_thread->sp);
 
   // Need to clean previous stack
   // if (t->status == TERMINATED &&
@@ -218,6 +224,7 @@ void child(void* arg) {
 }
 
 int main() {
+
   // thread_init();
   // thread_create(child, "Child thread");
   // printf("Main thread is running.\n\r");
