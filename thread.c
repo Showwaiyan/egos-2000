@@ -101,7 +101,15 @@ void thread_yield() {
 
 
   struct thread *t;
-  SLIST_FOREACH(t, &TCB, next) {
+  struct thread *tmp;
+  SLIST_FOREACH_SAFE(t, &TCB, next, tmp) {
+    if (t->status == TERMINATED && t != current_thread) {
+      SLIST_REMOVE(&TCB, t, thread, next);
+      free(t->stack_base);
+      free(t);
+      continue;
+    }
+
     if (t->status == RUNNABLE) {
       new_thread = t;
       break;
@@ -129,7 +137,15 @@ void thread_exit() {
 
   struct thread *new_thread;
   struct thread *t;
-  SLIST_FOREACH(t, &TCB, next) {
+  struct thread *tmp;
+  SLIST_FOREACH_SAFE(t, &TCB, next, tmp) {
+    if (t->status == TERMINATED && t != current_thread) {
+      SLIST_REMOVE(&TCB, t, thread, next);
+      free(t->stack_base);
+      free(t);
+      continue;
+    }
+
     if (t->status == RUNNABLE) {
       new_thread = t;
       break;
