@@ -74,16 +74,15 @@ void thread_create(void (*entry)(void *arg), void *arg) {
   struct thread *old_thread = current_thread;
   current_thread = new_thread;
 
-
-
   // Allocate Stack size
   char *child_stack = malloc(STACK_SIZE);
   // Why we use char*, because we need to process in raw bytes, so 1 byte size
   // char is the best
 
   new_thread->stack_base = child_stack;
-  new_thread->sp = child_stack +
-          STACK_SIZE; // We add STACK_SIZE as mallco only give the lowest memory
+  new_thread->sp =
+      child_stack +
+      STACK_SIZE; // We add STACK_SIZE as mallco only give the lowest memory
   // Stack need to point to highest memory of its
 
   SLIST_INSERT_HEAD(&TCB, new_thread, next);
@@ -98,7 +97,6 @@ void thread_yield() {
   /* Student's code goes here (Cooperative Threads). */
   struct thread *old_thread = current_thread;
   struct thread *new_thread = NULL;
-
 
   struct thread *t;
   struct thread *tmp;
@@ -115,7 +113,7 @@ void thread_yield() {
       break;
     }
   }
-  
+
   old_thread->status = RUNNABLE;
   new_thread->status = RUNNING;
 
@@ -129,11 +127,10 @@ void thread_yield() {
 void thread_exit() {
   /* Student's code goes here (Cooperative Threads). */
   struct thread *old_thread = current_thread;
-  
+
   old_thread->status = TERMINATED;
   old_thread->entry = NULL;
   old_thread->arg = NULL;
-
 
   struct thread *new_thread;
   struct thread *t;
@@ -152,18 +149,12 @@ void thread_exit() {
     }
   }
 
-  if (new_thread == NULL) _end();
+  if (new_thread == NULL)
+    _end();
   new_thread->status = RUNNING;
   current_thread = new_thread;
 
   ctx_switch(&old_thread->sp, new_thread->sp);
-
-  // Need to clean previous stack
-  // if (t->status == TERMINATED &&
-  //     t->stack_base != NULL) {
-  //   free(t->stack_base);
-  //   t->stack_base = NULL;
-  // }
 
   /* Student's code ends here. */
 }
@@ -176,18 +167,36 @@ void thread_exit() {
 void cv_init(struct cv *condition) {
   /* Student's code goes here (Cooperative Threads). */
 
+  SLIST_INIT(&condition->waiters);
   /* Student's code ends here. */
 }
 
 void cv_wait(struct cv *condition) {
   /* Student's code goes here (Cooperative Threads). */
+  SLIST_REMOVE(&TCB, current_thread, thread, next);
 
+  SLIST_INSERT_HEAD(&(condition->waiters), current_thread, next);
+  condition->count++;
+
+  current_thread->status = BLOCKED;
+
+  thread_yield();
   /* Student's code ends here. */
 }
 
 void cv_signal(struct cv *condition) {
   /* Student's code goes here (Cooperative Threads). */
+  struct thread *t = SLIST_FIRST(&condition->waiters);
 
+  if (t == NULL)
+    return;
+
+  SLIST_REMOVE_HEAD(&condition->waiters, next);
+  condition->count--;
+
+  t->status = RUNNABLE;
+
+  SLIST_INSERT_HEAD(&TCB, t, next);
   /* Student's code ends here. */
 }
 
@@ -205,7 +214,7 @@ void produce(void *arg) {
 
     /* Student's code goes here (Cooperative Threads). */
     /* Print out the producer ID with the arg pointer. */
-
+    printf("Producer:%d produce tail:%d\n\r", *(int *)arg, tail);
     /* Student's code ends here. */
     buffer[tail] = arg;
     tail = (tail + 1) % BUF_SIZE;
@@ -222,6 +231,7 @@ void consume(void *arg) {
 
     /* Student's code goes here (Cooperative Threads). */
     /* Print out the consumer ID with the arg pointer. */
+    printf("Consumer:%d consume head:%d\n\r", *(int *)arg, head);
 
     /* Student's code ends here. */
     void *result = buffer[head];
@@ -232,11 +242,11 @@ void consume(void *arg) {
 }
 
 // void child(void *arg) { printf("%s is running.\n\r", arg); }
-void child(void* arg) {
-    for (int i = 0; i < 10; i++) {
-        printf("%s is in for loop i=%d\n\r", arg, i);
-        thread_yield();
-    }
+void child(void *arg) {
+  for (int i = 0; i < 10; i++) {
+    printf("%s is in for loop i=%d\n\r", arg, i);
+    thread_yield();
+  }
 }
 
 int main() {
@@ -246,26 +256,29 @@ int main() {
   // printf("Main thread is running.\n\r");
   // thread_exit();
 
-    thread_init();
-    thread_create(child, "Child thread");
-    for (int i = 0; i < 10; i++) {
-        printf("Main thread is in for loop i=%d\n\r", i);
-        thread_yield();
-    }
-    thread_exit();
-
-  // int ID[500];
-  // for (int i = 0; i < 500; i++)
-  //   ID[i] = i;
-  //
-  // for (int i = 0; i < 500; i++)
-  //   thread_create(consume, ID + i);
-  //
-  // for (int i = 0; i < 500; i++)
-  //   thread_create(produce, ID + i);
-  //
-  // printf("main thread exits\n\r");
+  // thread_init();
+  // thread_create(child, "Child thread");
+  // for (int i = 0; i < 10; i++) {
+  //     printf("Main thread is in for loop i=%d\n\r", i);
+  //     thread_yield();
+  // }
   // thread_exit();
+
+  thread_init();
+  cv_init(&nonempty);
+  cv_init(&nonfull);
+  int ID[500];
+  for (int i = 0; i < 500; i++)
+    ID[i] = i;
+
+  for (int i = 0; i < 500; i++)
+    thread_create(consume, ID + i);
+
+  for (int i = 0; i < 500; i++)
+    thread_create(produce, ID + i);
+
+  printf("main thread exits\n\r");
+  thread_exit();
 
   /* The control flow should NEVER get here. If the main thread is the last to
    * call thread_exit(), thread_exit() should terminate the program by calling

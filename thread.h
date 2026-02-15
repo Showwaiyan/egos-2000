@@ -3,25 +3,29 @@
 enum thread_status {
   UNUSED,
   RUNNABLE,
-	RUNNING,
-  TERMINATED
-    /* Define the various possible status of a thread. */
+  RUNNING,
+  TERMINATED,
+  BLOCKED
+  /* Define the various possible status of a thread. */
 };
 
 struct thread {
-    int id;
-    enum thread_status status;
-    void* stack_base; //lowest memory of stack to be freed
-    void* sp;
-    void (*entry)(void *arg);
-    void *arg;
-    /* Define the data structure for thread control block. */
-    SLIST_ENTRY(thread) next;
+  /* Define the data structure for thread control block. */
+  int id;
+  enum thread_status status;
+  void *stack_base; // lowest memory of stack to be freed
+  void *sp;
+  void (*entry)(void *arg);
+  void *arg;
+  SLIST_ENTRY(thread) next;
 };
 
-struct cv {
-    /* Define the data structure for conditional variables. */
+SLIST_HEAD(thread_list, thread);
 
+struct cv {
+  /* Define the data structure for conditional variables. */
+  struct thread_list waiters;
+  int count;
 };
 /* Student's code ends here. */
 
@@ -32,55 +36,56 @@ struct cv {
 #define MAX_THREADS 32
 
 /* ctx_start() and ctx_switch() are defined in context.s */
-void  ctx_start(void **sp_old, void *sp_new);
+void ctx_start(void **sp_old, void *sp_new);
 void ctx_switch(void **sp_old, void *sp_new);
 
 /* _end() is defined in thread.s */
 void _end();
 
 /**
- * ctx_entry(): Executing in the context of a newly created thread. The thread will
- * set up its own state (e.g., point its own TCB entry as currently running), and then
- * run its entry function held in its TCB entry. Once the thread finishes its work, it
- * will return to this function and exit by calling thread_exit().
+ * ctx_entry(): Executing in the context of a newly created thread. The thread
+ * will set up its own state (e.g., point its own TCB entry as currently
+ * running), and then run its entry function held in its TCB entry. Once the
+ * thread finishes its work, it will return to this function and exit by calling
+ * thread_exit().
  */
 void ctx_entry();
 
 /**
- * thread_init(): Initialize the data structures for multi-threading, which includes
- * allocating a TCB entry for the main thread.
+ * thread_init(): Initialize the data structures for multi-threading, which
+ * includes allocating a TCB entry for the main thread.
  */
 void thread_init();
 
 /**
- * thread_create(void (*entry)(void *arg), void *arg): Create a new thread with a
- * stack of STACK_SIZE (defined above) bytes, and schedule it to run.
+ * thread_create(void (*entry)(void *arg), void *arg): Create a new thread with
+ * a stack of STACK_SIZE (defined above) bytes, and schedule it to run.
  *
  * Let T denote the thread that called thread_create().
  * Let T' denote the newly created thread.
  *
- * In thread_create(), T will allocate a TCB entry for T' along with the stack of T',
- * and then T will schedule T' to run using ctx_start().
+ * In thread_create(), T will allocate a TCB entry for T' along with the stack
+ * of T', and then T will schedule T' to run using ctx_start().
  *
- * When thread T'' context switches back to T, T will return back to thread_create(),
- * and possibly clean up T'' if T'' has terminated.
+ * When thread T'' context switches back to T, T will return back to
+ * thread_create(), and possibly clean up T'' if T'' has terminated.
  */
 void thread_create(void (*entry)(void *arg), void *arg);
 
 /**
- * thread_yield(): Switch to another thread using ctx_switch(). If no other thread
- * can be switched to, continue to run the current thread (if it has not exited or
- * been waiting on a semaphore).
+ * thread_yield(): Switch to another thread using ctx_switch(). If no other
+ * thread can be switched to, continue to run the current thread (if it has not
+ * exited or been waiting on a semaphore).
  *
- * Once some thread T' context switches back to T, T will return to thread_yield()
- * and cleanup T' if T' has terminated.
+ * Once some thread T' context switches back to T, T will return to
+ * thread_yield() and cleanup T' if T' has terminated.
  */
 void thread_yield();
 
 /**
- * thread_exit(): The current thread will set its status ZOMBIE (cannot be scheduled),
- * and yield to another thread. If all the other threads have exited by thread_exit(),
- * call the _end() in thread.s which just infinitely loops.
+ * thread_exit(): The current thread will set its status ZOMBIE (cannot be
+ * scheduled), and yield to another thread. If all the other threads have exited
+ * by thread_exit(), call the _end() in thread.s which just infinitely loops.
  */
 void thread_exit();
 
@@ -90,15 +95,16 @@ void thread_exit();
 void cv_init(struct cv *condition);
 
 /**
- * cv_wait(struct cv *condition): Remove the current thread from the TCB, and add it
- * to the conditional variable. Try to yield to another thread in the TCB.
+ * cv_wait(struct cv *condition): Remove the current thread from the TCB, and
+ * add it to the conditional variable. Try to yield to another thread in the
+ * TCB.
  */
 void cv_wait(struct cv *condition);
 
 /**
- * cv_signal(struct cv *condition): Remove a thread (if exists) from the conditional
- * variable, and add it back to the TCB so that it can be scheduled later. However,
- * cv_signal should not switch the CPU context to another thread (i.e., the current
- * thread should continue to run).
+ * cv_signal(struct cv *condition): Remove a thread (if exists) from the
+ * conditional variable, and add it back to the TCB so that it can be scheduled
+ * later. However, cv_signal should not switch the CPU context to another thread
+ * (i.e., the current thread should continue to run).
  */
 void cv_signal(struct cv *condition);
