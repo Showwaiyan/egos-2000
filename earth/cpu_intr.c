@@ -52,6 +52,5 @@ void intr_init(uint core_id) {
     /* Enable external interrupt. Find the IRQ number corresponding to the
      * Ethernet controller device in PLIC, enable external interrupts from
      * this IRQ number, and then set the priority of this IRQ number to 1. */
-
     /* Student's code ends here. */
 }

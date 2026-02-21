@@ -19,6 +19,7 @@ struct process proc_set[MAX_NPROCESS + 1];
 #define curr_pid      proc_set[curr_proc_idx].pid
 #define curr_status   proc_set[curr_proc_idx].status
 #define curr_saved    proc_set[curr_proc_idx].saved_registers
+#define curr_proc     proc_set[curr_proc_idx]
 
 static void intr_entry(uint);
 static void excp_entry(uint);
@@ -72,6 +73,7 @@ static void intr_entry(uint id) {
     /* Student's code goes here (Preemptive Scheduler). */
 
     /* Update the process lifecycle statistics. */
+    if (id == INTR_ID_TIMER) curr_proc.interrupt_count++;
 
     /* Student's code ends here. */
 
@@ -99,6 +101,12 @@ static void proc_yield() {
      * [System Call & Protection]
      * Do not schedule a process that should still be sleeping at this time. */
 
+    time_t now = mtime_get();
+    if (curr_status == PROC_RUNNING && curr_proc.last_t_on_cpu != 0) {
+        curr_proc.accumulated_cpu_t += now - curr_proc.last_t_on_cpu;
+    }
+
+
     int next_idx = MAX_NPROCESS;
     for (uint i = 1; i <= MAX_NPROCESS; i++) {
         struct process* p = &proc_set[(curr_proc_idx + i) % MAX_NPROCESS];
@@ -115,6 +123,9 @@ static void proc_yield() {
          * Measure and record lifecycle statistics for the *next* process.
          * [System Call & Protection | Multicore & Locks]
          * Modify mstatus.MPP to enter machine or user mode after mret. */
+
+    proc_set[next_idx].last_t_on_cpu = now;
+    if (proc_set[next_idx].first_t_scheduled == 0) proc_set[next_idx].first_t_scheduled = now;
 
     } else {
         /* [Multicore & Locks]
