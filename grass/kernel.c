@@ -104,17 +104,23 @@ static void proc_yield() {
     time_t now = mtime_get();
     if (curr_status == PROC_RUNNING && curr_proc.last_t_on_cpu != 0) {
         curr_proc.accumulated_cpu_t += now - curr_proc.last_t_on_cpu;
+        mlfq_update_level(&curr_proc, now-curr_proc.last_t_on_cpu);
     }
 
+    mlfq_reset_level();
 
     int next_idx = MAX_NPROCESS;
+    int best_level = 5;
     for (uint i = 1; i <= MAX_NPROCESS; i++) {
         struct process* p = &proc_set[(curr_proc_idx + i) % MAX_NPROCESS];
         if (p->status == PROC_PENDING_SYSCALL) proc_try_syscall(p);
 
         if (p->status == PROC_READY || p->status == PROC_RUNNABLE) {
+          if (best_level > p->mlfq_level) {
             next_idx = (curr_proc_idx + i) % MAX_NPROCESS;
-            break;
+            best_level = p->mlfq_level;
+            if (best_level == 0) break;
+          }
         }
     }
 
@@ -124,7 +130,7 @@ static void proc_yield() {
          * [System Call & Protection | Multicore & Locks]
          * Modify mstatus.MPP to enter machine or user mode after mret. */
 
-    proc_set[next_idx].last_t_on_cpu = now;
+    proc_set[next_idx].last_t_on_cpu = mtime_get();
     if (proc_set[next_idx].first_t_scheduled == 0) proc_set[next_idx].first_t_scheduled = now;
 
     } else {

@@ -29,6 +29,9 @@ struct process {
   time_t respond_t;
   int interrupt_count;
 
+  int mlfq_level;
+  time_t mlfq_runtime;
+
   /* Student's code ends here. */
 };
 #define MAX_NPROCESS 16

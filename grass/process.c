@@ -39,6 +39,8 @@ int proc_alloc() {
       proc_set[i].turnaround_t = 0;
       proc_set[i].respond_t = 0;
       proc_set[i].interrupt_count = 0;
+      proc_set[i].mlfq_level = 0;
+      proc_set[i].mlfq_runtime = 0;
 
       /* Student's code ends here. */
       return curr_pid;
@@ -119,6 +121,12 @@ void mlfq_update_level(struct process *p, ulonglong runtime) {
   /* Update the MLFQ-related fields in struct process* p after this
    * process has run on the CPU for another runtime microseconds. */
 
+  p->mlfq_runtime += runtime;
+  if (p->mlfq_runtime > MLFQ_LEVEL_RUNTIME(p->mlfq_level)) {
+    p->mlfq_runtime -= MLFQ_LEVEL_RUNTIME(p->mlfq_level);
+    if (p->mlfq_level < 4) p->mlfq_level++;
+  }
+
   /* Student's code ends here. */
 }
 
@@ -126,10 +134,27 @@ void mlfq_reset_level() {
   /* Student's code goes here (Preemptive Scheduler). */
   if (!earth->tty_input_empty()) {
     /* Reset the level of GPID_SHELL if there is pending keyboard input. */
+    
+    for (uint i = 0; i < MAX_NPROCESS; i++) 
+      if (proc_set[i].pid == GPID_SHELL) {
+        proc_set[i].mlfq_level = 0;
+        proc_set[i].mlfq_runtime = 0;
+      }
   }
 
   static ulonglong MLFQ_last_reset_time = 0;
   /* Reset the level of all processes every MLFQ_RESET_PERIOD microseconds. */
+  time_t now = mtime_get();
+  if (MLFQ_last_reset_time = 0) MLFQ_last_reset_time = now;
+  else if (now - MLFQ_last_reset_time >= MLFQ_RESET_PERIOD) {
+    for (uint i = 0; i< MAX_NPROCESS; i++) {
+      if (proc_set[i].status != PROC_UNUSED) {
+        proc_set[i].mlfq_level = 0;
+        proc_set[i].mlfq_runtime = 0;
+      }
+    }
+    MLFQ_last_reset_time = now;
+  }
 
   /* Student's code ends here. */
 }
