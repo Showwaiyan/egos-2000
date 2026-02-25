@@ -104,7 +104,7 @@ static void proc_yield() {
     time_t now = mtime_get();
     if (curr_status == PROC_RUNNING && curr_proc.last_t_on_cpu != 0) {
         curr_proc.accumulated_cpu_t += now - curr_proc.last_t_on_cpu;
-        mlfq_update_level(&curr_proc, now-curr_proc.last_t_on_cpu);
+        mlfq_update_level(&curr_proc, curr_proc.accumulated_cpu_t);
     }
 
     mlfq_reset_level();
