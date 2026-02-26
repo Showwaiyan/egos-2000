@@ -39,8 +39,12 @@ int proc_alloc() {
       proc_set[i].turnaround_t = 0;
       proc_set[i].respond_t = 0;
       proc_set[i].interrupt_count = 0;
+
       proc_set[i].mlfq_level = 0;
       proc_set[i].mlfq_runtime = 0;
+
+      proc_set[i].sleep_start_time = 0;
+      proc_set[i].sleep_usec = 0;
 
       /* Student's code ends here. */
       return curr_pid;
@@ -124,7 +128,8 @@ void mlfq_update_level(struct process *p, ulonglong runtime) {
   p->mlfq_runtime += runtime;
   if (p->mlfq_runtime > MLFQ_LEVEL_RUNTIME(p->mlfq_level)) {
     p->mlfq_runtime -= MLFQ_LEVEL_RUNTIME(p->mlfq_level);
-    if (p->mlfq_level < 4) p->mlfq_level++;
+    if (p->mlfq_level < 4)
+      p->mlfq_level++;
   }
 
   /* Student's code ends here. */
@@ -134,8 +139,8 @@ void mlfq_reset_level() {
   /* Student's code goes here (Preemptive Scheduler). */
   if (!earth->tty_input_empty()) {
     /* Reset the level of GPID_SHELL if there is pending keyboard input. */
-    
-    for (uint i = 0; i < MAX_NPROCESS; i++) 
+
+    for (uint i = 0; i < MAX_NPROCESS; i++)
       if (proc_set[i].pid == GPID_SHELL) {
         proc_set[i].mlfq_level = 0;
         proc_set[i].mlfq_runtime = 0;
@@ -145,9 +150,10 @@ void mlfq_reset_level() {
   static ulonglong MLFQ_last_reset_time = 0;
   /* Reset the level of all processes every MLFQ_RESET_PERIOD microseconds. */
   time_t now = mtime_get();
-  if (MLFQ_last_reset_time = 0) MLFQ_last_reset_time = now;
+  if (MLFQ_last_reset_time = 0)
+    MLFQ_last_reset_time = now;
   else if (now - MLFQ_last_reset_time >= MLFQ_RESET_PERIOD) {
-    for (uint i = 0; i< MAX_NPROCESS; i++) {
+    for (uint i = 0; i < MAX_NPROCESS; i++) {
       if (proc_set[i].status != PROC_UNUSED) {
         proc_set[i].mlfq_level = 0;
         proc_set[i].mlfq_runtime = 0;
@@ -162,7 +168,19 @@ void mlfq_reset_level() {
 void proc_sleep(int pid, uint usec) {
   /* Student's code goes here (System Call & Protection). */
 
-  /* Update the sleep-related fields in the struct process for process pid. */
+  /* Update the sleep-related fields in the struct process for process pid.
+   */
+  printf("[DEBUG] proc_sleep called: pid=%d usec=%d\n", pid, usec);
+  for (uint i = 0; i < MAX_NPROCESS; i++) {
+    if (proc_set[i].pid == pid) {
+
+      proc_set[i].sleep_start_time = mtime_get();
+      proc_set[i].sleep_usec = usec;
+
+      proc_set[i].status = PROC_SLEEPING;
+      return;
+    }
+  }
 
   /* Student's code ends here. */
 }

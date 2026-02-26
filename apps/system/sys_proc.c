@@ -70,6 +70,9 @@ int main(int unused, struct multicore* boot) {
         /* Student's code goes here (System Call & Protection). */
 
         /* Add a case which handles process sleep. */
+        case PROC_SLEEP:
+            grass->proc_sleep(sender, req->usec);
+            break;
 
         /* Student's code ends here. */
         default:

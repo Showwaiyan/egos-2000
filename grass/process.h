@@ -10,7 +10,8 @@ enum proc_status {
   PROC_READY,
   PROC_RUNNING,
   PROC_RUNNABLE,
-  PROC_PENDING_SYSCALL
+  PROC_PENDING_SYSCALL,
+  PROC_SLEEPING
 };
 
 struct process {
@@ -31,6 +32,9 @@ struct process {
 
   int mlfq_level;
   time_t mlfq_runtime;
+
+  time_t sleep_start_time;
+  uint sleep_usec;
 
   /* Student's code ends here. */
 };
