@@ -8,6 +8,7 @@
  */
 
 #include "process.h"
+#include "servers.h"
 #include <string.h>
 
 uint core_in_kernel;
@@ -64,6 +65,22 @@ static void excp_entry(uint id) {
   /* Student's code goes here (System Call & Protection | Virtual Memory). */
 
   /* Kill the current process if curr_pid is a user application. */
+  if (curr_pid >= GPID_USER_START) {
+      INFO("process %d terminated with exception %d", curr_pid, id);
+      
+      struct proc_request req;
+      req.type = PROC_EXIT;
+      
+      curr_proc.syscall.type = SYS_SEND;
+      curr_proc.syscall.receiver = GPID_PROCESS;
+      memcpy(curr_proc.syscall.content, &req, sizeof(req));
+      curr_proc.syscall.status = PENDING;
+      
+      proc_set_pending(curr_pid);
+      proc_try_syscall(&curr_proc);
+      proc_yield();
+      return;
+  }
 
   /* Student's code ends here. */
   FATAL("excp_entry: kernel got exception %d", id);
@@ -142,6 +159,14 @@ static void proc_yield() {
      * Measure and record lifecycle statistics for the *next* process.
      * [System Call & Protection | Multicore & Locks]
      * Modify mstatus.MPP to enter machine or user mode after mret. */
+
+    uint mstatus;
+    asm("csrr %0, mstatus" : "=r"(mstatus));
+    mstatus &= ~(3 << 11);
+
+    if (proc_set[next_idx].pid < GPID_USER_START) mstatus |= (3 << 11);
+
+    asm("csrw mstatus, %0" : : "r"(mstatus));
 
     proc_set[next_idx].last_t_on_cpu = mtime_get();
     if (proc_set[next_idx].first_t_scheduled == 0)
